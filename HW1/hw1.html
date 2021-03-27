@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#info {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00;
+}
+
+body {
+  overflow: hidden;
+}
+
+
+</style>
+</head>
+
+<body> 
+<div id="info">minimal three.js</div>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js">
+</script>
+
+<audio id="collisionsound" style="display:none">
+<source src="collision3.wav" type='audio/wav'>
+</audio>
+<audio id="soundtrack" autoplay loop style="display:none">
+<source src="sounds/KennyG.mp3" type='audio/mp3'>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+
+</audio>
+
+
+<script>
+var camera, scene, renderer;
+var pos=[],vel=[],force=[];
+var pos2,vel2,force2;
+var b1,b2,b3,b4,b5;
+var wD,wL,wR,wU;
+var walls= [],balls = [];
+var collisionSound, soundTrack;
+var isDimming = false, soundVal = 1.0, sign = 1.0;
+class Ball{	
+   constructor(puckMat,x,z){
+   		
+   this.puck = new THREE.Mesh (new THREE.CylinderGeometry(10,10,4,20), puckMat);
+this.light = new THREE.PointLight( 0xffffff, 1);
+
+
+this.light.color.copy (puckMat.color);
+this.puck.position.set(x,2,z);
+
+this.light.position.copy( this.puck.position );
+this.light.position.y += 12;
+
+	 scene.add( this.light );
+   scene.add (this.puck);
+   		
+   } 
+   setPos(pos){
+   		this.puck.position.copy(pos);
+   }
+   setLight()
+   {
+   		this.light.position.copy(this.puck.position);
+      this.light.position.y += 12;
+      
+   }
+
+   
+   
+}
+class Wall{
+	constructor(x,y,z){
+  this.wall = new THREE.Mesh (new THREE.BoxGeometry(500,40, 20), new THREE.MeshPhongMaterial({color:0x708090, transparent: false, opacity:0.4}));
+  this.wall.position.set(x,y,z); 
+  
+  
+  
+  
+  scene.add (this.wall);
+  
+  }
+  rot()
+  {
+  	this.wall.rotation.y = Math.PI/2;
+  }
+  getPoint()
+  {
+  	return this.wall.point;
+  }
+  getNormal()
+  {
+  	return this.wall.normal;
+  }
+  setPoint(x,y,z)
+  {
+  	this.wall.point = new THREE.Vector3(x,y,z);
+  }
+  setNormal(x,y,z)
+  {
+  	this.wall.normal = new THREE.Vector3(x,y,z);
+  }
+}
+init();
+animate();
+
+
+
+$('#play').click ( function() {
+	isPaused = !isPaused;
+	if (isPaused) { 
+		$('#play').text ('Play')
+		soundTrack.pause()
+	} else {
+		$('#play').text ('Pause')
+		soundTrack.play()
+	}
+});
+
+$('#dimmer').click (function() { toggle(); });
+function init() {
+	collisionSound = document.getElementById ('collisionsound');
+  
+  scene = new THREE.Scene();
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  document.body.appendChild(renderer.domElement);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  camera.position.z = 500;
+  let controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+//地面
+var floor = new THREE.Mesh (new THREE.PlaneGeometry(500,500), new THREE.MeshPhongMaterial());
+ floor.rotation.x = -Math.PI/2;
+ scene.add (floor); 
+  
+
+ let puckMat = new THREE.MeshBasicMaterial();
+  puckMat.color = new THREE.Color().setHSL (4/360,.98,.44);
+  let puckMat2 = new THREE.MeshBasicMaterial();
+  puckMat2.color = new THREE.Color().setHSL (103/360,.98,.44);
+  let puckMat3 = new THREE.MeshBasicMaterial();
+  puckMat3.color = new THREE.Color().setHSL (289/360,.98,.44);
+  let puckMat4 = new THREE.MeshBasicMaterial();
+  puckMat4.color = new THREE.Color().setHSL (186/360,.98,.44);
+  let puckMat5 = new THREE.MeshBasicMaterial();
+  puckMat5.color = new THREE.Color().setHSL (44/360,.98,.44);
+   
+   
+   
+  var light = new THREE.AmbientLight(0x202020);
+  scene.add(light);
+  
+  const light2 = new THREE.PointLight( 0xffffff, 1, 100 );
+
+scene.add( light2 );
+  //五顆球
+  b1 = new Ball(puckMat,50,20);
+  b2 = new Ball(puckMat2,-50,-20);
+  b3 = new Ball(puckMat3,-20,-50);
+  b4 = new Ball(puckMat4,20,50);
+  b5 = new Ball(puckMat5,10,10);
+  
+  balls.push(b1);
+  balls.push(b2);
+  balls.push(b3);
+  balls.push(b4);
+  balls.push(b5);
+  
+  //四面牆
+  wD = new Wall(0,20,240);
+  wD.setPoint(0,0,220);
+  wD.setNormal(0,0,-1);
+  walls.push(wD);
+  
+  wU = new Wall(0,20,-240);
+  wU.setPoint(0,0,-220);
+  wU.setNormal(0,0,1);
+  walls.push(wU);
+  
+  
+  wL = new Wall(-240,20,0);
+  wL.rot();
+  wL.setPoint(-220,0,0);
+  wL.setNormal(1,0,0);
+  walls.push(wL);
+  
+  
+  wR = new Wall(240,20,0);
+  wR.rot();
+  wR.setPoint(220,0,0);
+  wR.setNormal(-1,0,0);
+  walls.push(wR);
+  
+  
+  
+  
+ 
+f = new THREE.Vector3(0,0,0);
+v = new THREE.Vector3(-1,0,0.8);
+p = new THREE.Vector3(-10,2,50);
+
+force.push(f);
+vel.push(v);
+pos.push(p);
+ 
+f2 = new THREE.Vector3(0,0,0);
+v2 = new THREE.Vector3(1,0,0.8);
+p2 = new THREE.Vector3(10,2,50);
+force.push(f2);
+vel.push(v2);
+pos.push(p2);
+
+f3 = new THREE.Vector3(0,0,0);
+v3 = new THREE.Vector3(1,0,0.3);
+p3 = new THREE.Vector3(10,2,-50);
+force.push(f3);
+vel.push(v3);
+pos.push(p3);
+
+f4 = new THREE.Vector3(0,0,0);
+v4 = new THREE.Vector3(-2,0,0.8);
+p4 = new THREE.Vector3(-10,2,-50);
+force.push(f4);
+vel.push(v4);
+pos.push(p4);
+
+f5 = new THREE.Vector3(0,0,0);
+v5 = new THREE.Vector3(2,0,0.5);
+p5 = new THREE.Vector3(-30,2,50);
+force.push(f5);
+vel.push(v5);
+pos.push(p5);
+
+ ////////////////////////////////////////////////////////////////
+  //var gridXZ = new THREE.GridHelper(200, 20, 'red', 'white');
+ // scene.add(gridXZ);
+
+}
+
+function animate() {
+soundVal += sign*0.01;
+	soundVal = THREE.Math.clamp (soundVal, 0, 1);
+	soundtrack.volume = soundVal;
+  var dt = 0.8;
+  var eps = 1e-3;
+  
+  var cR = 1;
+  var d;
+  
+ 
+  //讓球動
+  for( i = 0; i< balls.length; i++)
+  {
+  	vel[i].add(force[i].clone().multiplyScalar(dt));
+    pos[i].add(vel[i].clone().multiplyScalar(dt));
+    balls[i].setPos(pos[i]);
+    balls[i].setLight();
+  }
+
+  
+  //撞牆偵測
+  
+  for (i=0;i<balls.length;i++)
+  {
+  	for(j=0;j<walls.length;j++)
+    {
+    	
+      if(pos[i].clone().sub(walls[j].getPoint()).dot(walls[j].getNormal()) < eps+10)　
+      {
+        
+       
+        
+        var vN = walls[j].getNormal().clone().multiplyScalar(vel[i].dot(walls[j].getNormal()));
+        var vT = vel[i].clone().sub(vN);
+
+        vel[i].copy(vT.add(vN.multiplyScalar(-cR)));
+		
+		collisionSound.play();
+      }
+    }
+  
+  
+  }
+  
+  
+ //球碰撞偵測
+ for(i = 0; i < balls.length-1; i++)
+ {
+ 		for(j = i+1; j< balls.length; j++)
+    {
+    	var dis = pos[i].distanceTo(pos[j]);
+      d = 20-dis;
+      if(dis <= 20)
+      {
+        //console.log("hihihi");
+        
+        d = 20-dis;
+        var vS = vel[i].clone().sub(vel[j]);
+        var pS = pos[i].clone().sub(pos[j]);
+
+        var vS1 = vel[j].clone().sub(vel[i]);
+        var pS1 = pos[j].clone().sub(pos[i]);
+        var t = pS1.clone();
+
+
+       pos[i].sub(t.multiplyScalar(d/2));
+       pos[j].add(t.multiplyScalar(d/2));
+
+
+       vel[i].sub(pS.multiplyScalar(vS.dot(pS)).divideScalar(dis*dis));
+       vel[j].sub(pS1.multiplyScalar(vS1.dot(pS1)).divideScalar(dis*dis));
+		collisionSound.play();
+      }
+    }
+ }
+  requestAnimationFrame(animate);
+  render();
+
+}
+
+function render() {
+
+  renderer.render(scene, camera);
+
+}
+
+
+</script>
+</body>
+
+</html>
