@@ -67,7 +67,7 @@ var camera, scene, renderer;
 var keyboard;
 var RR;
 var state = 0;
-
+var keyU, keyD, keyL ,keyR;
 
 init();
 animate();
@@ -129,16 +129,23 @@ function buildTree () {
  
    return L5;  // the root node
 }
+var tmp = new BSPNode(E,F);
 function inOut (x,y, node, r ) { // 半徑(r) default 為 0
   
    if (node.coeff[0]*x + node.coeff[1]*y + node.coeff[2] > r) {
        if (node.leftChild === null )
-       	  return 0; // free
+       	{
+        		tmp = node;
+            return 0; // free
+        }  
        else
           return inOut (x,y, node.leftChild, r);
    } else { // <= 0
        if (node.rightChild === null)
-          return 1; // solid
+        {
+        		tmp = node;
+            return 1; // solid
+        }  
        else
           return inOut (x,y, node.rightChild, r);
    }
@@ -176,27 +183,38 @@ function init(){
   scene.add (pawn);
   
   pawn.position.set (2.1, 1.5);
+  
+  
+  
 }
 function animate(){
 	keyboard.update();
   
   if (keyboard.down('up')) {
-  	pawn.position.y += 0.1;
-    state = inOut (pawn.position.x, pawn.position.y, tree, RR);
+  	
+    state = inOut (pawn.position.x, pawn.position.y+0.1, tree, RR);
+    if(tmp.coeff[0]*pawn.position.x + tmp.coeff[1]*(pawn.position.y+0.1) + tmp.coeff[2] > RR )
+    	pawn.position.y += 0.1;
   } 
   
   if (keyboard.down('down')) {
-  	pawn.position.y -= 0.1;
-    state = inOut (pawn.position.x, pawn.position.y, tree, RR);
+  	
+    state = inOut (pawn.position.x, pawn.position.y-0.1, tree, RR);
+    if(tmp.coeff[0]*pawn.position.x + tmp.coeff[1]*(pawn.position.y-0.1) + tmp.coeff[2] > RR )
+    pawn.position.y -= 0.1;
   } 
 
   if (keyboard.down('left')) { 
-  	pawn.position.x -= 0.1;
-    state = inOut (pawn.position.x, pawn.position.y, tree, RR);
+  	
+    state = inOut (pawn.position.x-0.1, pawn.position.y, tree, RR);
+    if(tmp.coeff[0]*(pawn.position.x-0.1) + tmp.coeff[1]*(pawn.position.y) + tmp.coeff[2] > RR )
+    pawn.position.x -= 0.1;
   }
   if (keyboard.down('right')) {
-  	pawn.position.x += 0.1;
-    state = inOut (pawn.position.x, pawn.position.y, tree, RR);
+  	
+    state = inOut (pawn.position.x+0.1, pawn.position.y, tree, RR);
+    if(tmp.coeff[0]*(pawn.position.x+0.1) + tmp.coeff[1]*(pawn.position.y+0.1) + tmp.coeff[2] > RR )
+    pawn.position.x += 0.1;
   } 
   
   if (state === 1) { // solid
